@@ -131,8 +131,8 @@ class Aggregator(ABC):
         pass
 
     def update_test_clients(self):
-        for client in self.test_clients:
-            for learner_id, learner in enumerate(test_clients.learners_ensemble):
+        for test_client in self.test_clients:
+            for learner_id, learner in enumerate(test_client.learners_ensemble):
                 copy_model(target=learner.model, source=self.global_learners_ensemble[learner_id].model)
 
         for client in self.test_clients:
@@ -198,6 +198,8 @@ class Aggregator(ABC):
 
         if self.verbose > 0:
             print("#" * 80)
+        
+        return global_train_loss, global_train_acc, global_test_loss, global_test_acc
 
     def save_state(self, dir_path):
         """
@@ -438,6 +440,7 @@ class ACGCentralizedAggregator(Aggregator):
 
         if not unseen:
             for client in self.sampled_clients:
+                # print(client)
                 client.step()
 
             # if self.c_round % self.ac_update_interval == 0:
@@ -656,6 +659,7 @@ class ACGCentralizedAggregator(Aggregator):
 
         if self.verbose > 0:
             print("#" * 80)
+        return global_train_loss, global_train_acc, global_test_loss, global_test_acc
 
     def save_state(self, dir_path):
         self.global_learners_ensemble.save_state(os.path.join(dir_path, 'global_ensemble.pt'))

@@ -159,7 +159,7 @@ def init_clients(args_, root_path, logs_dir, save_path, dataset, hparams):
     # global PCA_V
     # PCA_V = V
     # print(PCA_V.size())
-    # with open(f"data/domainbed/PCA.pkl" , 'wb') as f:
+    # with open(f"data/domainbed/PCA_pacs.pkl" , 'wb') as f:
     #     pickle.dump(PCA_V, f)
 
     # encoder_output = encoder_output.view(encoder_output.size(0), -1)
@@ -259,7 +259,7 @@ def run_experiment(args_):
     if "logs_dir" in args_:
         logs_dir = args_.logs_dir
     else:
-        logs_dir = os.path.join("logs", args_to_string(args_))
+        logs_dir = os.path.join("logs", args_to_string(args_), args_.dataset)
 
     if args_.dataset in vars(datasets_pfl):
         dataset = vars(datasets_pfl)[args_.dataset](args_.data_dir,
@@ -277,11 +277,12 @@ def run_experiment(args_):
                            )
 
     print("==> Test Clients initialization..")
-    test_clients = init_clients(args_, root_path=os.path.join(args_.data_dir, "test"),
-                                logs_dir=os.path.join(logs_dir, "test"),
-                                save_path=os.path.join(save_dir, "test"),
-                                dataset=dataset,
-                                hparams=hparams)
+    # test_clients = init_clients(args_, root_path=os.path.join(args_.data_dir, "test"),
+    #                             logs_dir=os.path.join(logs_dir, "test"),
+    #                             save_path=os.path.join(save_dir, "test"),
+    #                             dataset=dataset,
+    #                             hparams=hparams)
+    test_clients = []
     # test_clients = None
 
     logs_path = os.path.join(logs_dir, "train", "global")
@@ -348,9 +349,22 @@ def run_experiment(args_):
     pbar = tqdm(total=args_.n_rounds)
     current_round = 0
     gmm = False
+    server_results = dict()
+    server_results['train'] = dict()
+    server_results['test'] = dict()
+    server_results['train']['loss'] = []
+    server_results['train']['acc'] = []
+    server_results['test']['loss'] = []
+    server_results['test']['acc'] = []
+
     while current_round <= args_.n_rounds:
         # aggregator.update_clients()
         # aggregator.write_log()
+        train_loss, train_acc, test_loss, test_acc = aggregator.write_logs()
+        server_results['train']['loss'].append(train_loss)
+        server_results['train']['acc'].append(train_acc)
+        server_results['test']['loss'].append(test_loss)
+        server_results['test']['acc'].append(test_acc)
         # raise
         if aggregator_type == "ACGcentralized":
             aggregator.mix()
@@ -363,7 +377,7 @@ def run_experiment(args_):
         if aggregator.c_round != current_round:
             pbar.update(1)
             current_round = aggregator.c_round
-        print(current_round)
+        # print(current_round)
         # if current_round > 50:
         #     gmm=False
 
@@ -371,6 +385,10 @@ def run_experiment(args_):
     global_test_logger.flush()
     global_train_logger.close()
     global_test_logger.close()
+
+    with open(os.path.join(logs_dir, (f'server_results.json')), 'w') as fp:
+            json.dump(server_results, fp, indent=4)
+    fp.close()
 
 
 

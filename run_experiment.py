@@ -43,7 +43,7 @@ def init_clients(args_, root_path, logs_dir, save_path):
     for cur_data in train_iterators:
         all_data_tensor.append(cur_data.dataset.data)
     all_data_tensor = torch.cat(all_data_tensor, dim=0)
-    # print(all_data_tensor.shape)
+    print(all_data_tensor.shape)
     model = models.resnet18(pretrained=True)
     
     del model.fc
@@ -71,7 +71,6 @@ def init_clients(args_, root_path, logs_dir, save_path):
     with open(f"data/cifar10/all_data/PCA.pkl" , 'wb') as f:
         pickle.dump(PCA_V, f)
     # raise
-
 
     # encoder_output = encoder_output.view(encoder_output.size(0), -1)
     # pca_transformer = PCA(n_components=emb_size)

@@ -294,6 +294,7 @@ class resnet_pca(nn.Module):
             self.model.layer3,
             self.model.layer4,
         )
+        # print(name)
         if not dp:
             if name == 'emnist':
                 with open("data/emnist/all_data/PCA.pkl", 'rb') as f:
@@ -310,6 +311,9 @@ class resnet_pca(nn.Module):
             elif name == 'mnist9':
                 with open("data/mnist9/all_data/PCA.pkl", 'rb') as f:
                     self.PCA_V = pickle.load(f)
+            elif name == 'domainbed':
+                with open("data/domainbed/PCA.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
             else:
                 raise
         else:
@@ -325,9 +329,13 @@ class resnet_pca(nn.Module):
             elif name == 'cifar100':
                 with open("data/cifar100/all_data/PCA_no_t.pkl", 'rb') as f:
                     self.PCA_V = pickle.load(f)
+            elif name == 'domainbed':
+                with open("data/domainbed/PCA_no_t.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
             else:
                 raise
         self.PCA_V = self.PCA_V[:,:embedding_size]
+        # self.PCA_V = self.PCA_V.permute(1,2,3,0)
     def encode(self, x):
 
         singular = False
@@ -336,6 +344,7 @@ class resnet_pca(nn.Module):
             x = x.repeat(1, 3, 1, 1)
         else:
             x = x.view(-1, 3, 32, 32)
+            # x = x.view(-1, 3, 224, 224)
         if x.shape[0] == 1:
             x = x.repeat(2, 1, 1, 1)
             singular = True
@@ -346,8 +355,124 @@ class resnet_pca(nn.Module):
         if singular:
             returned = encoder_output[0,:] @ self.PCA_V.to(x.device)
             return returned.view(1,-1)
+        # print(encoder_output.shape,self.PCA_V.shape)
         returned = encoder_output @ self.PCA_V.to(x.device)
         a, b = returned.shape
+        return returned.view(a, b)
+
+    def decode(self, z):
+        return self.decoder(z)
+
+    def forward(self, x):
+        # z = self.encode(x)
+        a,_,_,_ = x.shape
+        # z = z.view(a,b,1,1)
+        # return self.decode(z)
+        return x.view(a,-1)
+
+class Identity(nn.Module):
+    """An identity layer"""
+    def __init__(self):
+        super(Identity, self).__init__()
+
+    def forward(self, x):
+        return x
+    
+class resnet_pca_domainbed(nn.Module):
+    def __init__(self, embedding_size, name, model, input_size=(1, 28, 28), dp=False):
+        super().__init__()
+        self.embedding_size = embedding_size
+        self.input_size = input_size
+        self.encoder = CNN_Encoder(self.embedding_size, input_size=input_size)
+        self.decoder = CNN_Decoder(self.embedding_size, input_size=input_size)
+        self.net = models.resnet18(pretrained=True)
+        self.model = model
+        # nc = 224
+        # tmp = self.model.conv1.weight.data.clone()
+
+        # self.model.conv1 = nn.Conv2d(
+        #     nc, 64, kernel_size=(7, 7),
+        #     stride=(2, 2), padding=(3, 3), bias=False)
+
+        # for i in range(nc):
+        #     self.model.conv1.weight.data[:, i, :, :] = tmp[:, i % 3, :, :]
+        
+        del self.net.fc
+        self.seq = nn.Sequential(
+            self.net.conv1,
+            self.net.relu,
+            self.net.layer1,
+            self.net.bn1,
+            self.net.maxpool,
+            self.net.layer2,
+            self.net.layer3,
+            self.net.layer4,
+        )
+        # print(name)
+        if not dp:
+            if name == 'emnist':
+                with open("data/emnist/all_data/PCA.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'femnist':
+                with open("data/femnist/all_data/PCA.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'cifar10':
+                with open("data/cifar10/all_data/PCA.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'cifar100':
+                with open("data/cifar100/all_data/PCA.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'mnist9':
+                with open("data/mnist9/all_data/PCA.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'domainbed':
+                with open("data/domainbed/PCA_pacs.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            else:
+                raise
+        else:
+            if name == 'emnist':
+                with open("data/emnist/all_data/PCA_no_t.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'femnist':
+                with open("data/femnist/all_data/PCA_no_t.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'cifar10':
+                with open("data/cifar10/all_data/PCA_no_t.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'cifar100':
+                with open("data/cifar100/all_data/PCA_no_t.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            elif name == 'domainbed':
+                with open("data/domainbed/PCA_no_t.pkl", 'rb') as f:
+                    self.PCA_V = pickle.load(f)
+            else:
+                raise
+        self.PCA_V = self.PCA_V[:,:embedding_size]
+        # self.PCA_V = self.PCA_V.permute(1,2,3,0)
+    def encode(self, x):
+
+        singular = False
+        if len(x.shape) == 3 or x.shape[1] == 1:
+            x = x.view(-1, 1, 28, 28)
+            x = x.repeat(1, 3, 1, 1)
+        else:
+            # x = x.view(-1, 3, 32, 32)
+            x = x.view(-1, 3, 224, 224)
+        if x.shape[0] == 1:
+            x = x.repeat(2, 1, 1, 1)
+            singular = True
+
+        x = self.model.featurizer.network(x)
+        # Extract the feature maps produced by the encoder
+        encoder_output = x.squeeze()
+        if singular:
+            returned = encoder_output[0,:] @ self.PCA_V.to(x.device)
+            return returned.view(1,-1)
+        # print(encoder_output.shape,self.PCA_V.shape)
+        returned = encoder_output @ self.PCA_V.to(x.device)
+        a, b = returned.shape
+        # print(returned.shape)
         return returned.view(a, b)
 
     def decode(self, z):
