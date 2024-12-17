@@ -19,6 +19,7 @@ class LinearLayer(nn.Module):
         self.input_dimension = input_dimension
         self.num_classes = num_classes
         print(input_dimension, num_classes)
+        print('input dims:', input_dimension, 'num_classes:', num_classes, 'bias:', bias)
         self.fc = nn.Linear(input_dimension, num_classes, bias=bias)
 
     def forward(self, x):
