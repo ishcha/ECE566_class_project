@@ -20,3 +20,13 @@ The code to run these baselines for VLCS is in ```baselines/FedADG/src```. The c
 The command to run FedADG is:
 
 ```./run_fedadg.sh```
+
+## Running FedEM and FedGMM
+
+The command to run the FedEM on VLCS and PACS datasets is:
+
+```./run_fedem.sh```
+
+The command to run FedGMM on VLCS and PACS datasets is:
+
+```./run_fedgmm.sh```
